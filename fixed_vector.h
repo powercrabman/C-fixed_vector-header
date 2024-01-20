@@ -67,6 +67,10 @@ public:
 		return *(*this + n);
 	}
 
+	difference_type operator-(const fv_iterator& rhs) const {
+		return _ptr - rhs._ptr;
+	}
+
 private:
 	Ty* _ptr;
 };
@@ -251,4 +255,3 @@ inline void fixed_vector<Ty, FIXED_SIZE>::push_back(Ty item)
 
 
 #endif // __FIXED_VECTOR_H_
-
