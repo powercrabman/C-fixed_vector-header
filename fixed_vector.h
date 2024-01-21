@@ -127,7 +127,7 @@ public:
 
 public:
 	void push_back(Ty item);
-	void pop_back() { assert(_size != 0); --_size; }
+	void pop_back() { assert(_size != 0); ::destroy_at(&_alloc[_size - 1]);  --_size; }
 
 	Ty back() const { assert(_size != 0);  return _alloc[_size - 1]; }
 	Ty front() const { assert(_size != 0); return _alloc[0]; }
