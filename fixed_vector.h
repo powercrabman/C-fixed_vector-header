@@ -208,12 +208,9 @@ public:
 
 		clear();
 
-		size_t i = 0;
 		for (const Ty& item : initializer)
-		{
-			_alloc[i] = item;
-			++i;
-		}
+			push_back(item);
+		
 	}
 	template <typename Iter>
 	void assign(Iter first, Iter last)
