@@ -131,7 +131,21 @@ public:
 	Ty back() const { assert(_size != 0);  return _alloc[_size - 1]; }
 	Ty front() const { assert(_size != 0); return _alloc[0]; }
 
-	void resize(size_t nSize) { assert(nSize >= 0 && nSize < FIXED_SIZE); _size = nSize; }
+	void resize(size_t nSize, Ty defaultItem = Ty())
+	{
+		assert(nSize <= FIXED_SIZE);
+
+		if (nSize > _size)
+		{
+			for (size_t i = _size; i < nSize; ++i)
+				push_back(defaultItem);
+		}
+		else if (nSize < _size)
+		{
+			::destroy(_alloc + nSize, _alloc + _size);
+			_size = nSize;
+		}
+	}
 
 	void swap(fixed_vector& other) { ::swap(_alloc, other._alloc); ::swap(_size, other._size); }
 
@@ -140,11 +154,86 @@ public:
 		_size = 0;
 	}
 
+	iterator insert(iterator pos, const Ty& item) {
+		assert(_size < _capacity);
+		auto index = pos - begin();
+		assert(index >= 0 && index <= _size);
+
+		for (size_t i = _size; i > index; --i)
+			_alloc[i] = _alloc[i - 1];
+
+		_alloc[index] = item;
+		++_size;
+
+		return begin() + index;
+	}
+	iterator erase(iterator pos) {
+		auto index = pos - begin();
+		assert(index >= 0 && index < _size);
+
+		for (size_t i = index; i < _size - 1; ++i)
+			_alloc[i] = _alloc[i + 1];
+
+		--_size;
+
+		return begin() + index;
+	}
+
+	iterator erase(iterator first, iterator last) {
+		auto index = first - begin();
+		assert(index >= 0 && index < _size);
+
+		auto eraseCount = last - first;
+		for (size_t i = index; i < _size - eraseCount; ++i)
+			_alloc[i] = _alloc[i + eraseCount];
+
+		::destroy(_alloc + _size - eraseCount, _alloc + _size);
+
+		_size -= eraseCount;
+
+		return begin() + index;
+	}
+
+	void assign(size_t nSize, const Ty& item) {
+		assert(nSize <= _capacity);
+
+		clear();
+
+		for (size_t i = 0; i < nSize; ++i)
+			push_back(item);
+	}
+	void assign(::initializer_list<Ty> initializer) {
+		assert(initializer.size() <= _capacity);
+
+		clear();
+
+		::memcpy(_alloc, initializer.begin(), sizeof(Ty) * _size);
+	}
+	template <typename Iter>
+	void assign(Iter first, Iter last)
+	{
+		size_t nSize = std::distance(first, last);
+		assert(nSize >= 0);
+		assert(nSize <= _capacity);
+
+		clear();
+
+		for (size_t i = 0; i < nSize; ++i)
+		{
+			push_back(*first);
+			++first;
+		}
+	}
+
 	iterator begin() { return iterator(_alloc); }
 	iterator end() { return iterator(_alloc + _size); }
 
+	const_iterator begin() const { return const_iterator(_alloc); }
+	const_iterator end() const { return const_iterator(_alloc + _size); }
+
 	const_iterator cbegin() const { return const_iterator(_alloc); }
 	const_iterator cend() const { return const_iterator(_alloc + _size); }
+
 
 	size_t size() const { return _size; }
 	size_t max_size() const { return FIXED_SIZE; }
