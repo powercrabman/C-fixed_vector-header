@@ -1,5 +1,6 @@
-#ifndef __FIXED_VECTOR_H_
-#define __FIXED_VECTOR_H_
+#pragma once
+
+/* fixed vector */
 
 #include <initializer_list>
 #include <cassert>
@@ -341,6 +342,3 @@ inline void fixed_vector<Ty, FIXED_SIZE>::push_back(Ty item)
 	_alloc[_size] = item;
 	++_size;
 }
-
-
-#endif // __FIXED_VECTOR_H_
