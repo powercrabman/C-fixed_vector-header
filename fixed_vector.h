@@ -3,6 +3,7 @@
 /* fixed vector */
 
 #include <initializer_list>
+#include <type_traits>
 #include <cassert>
 using namespace std;
 
@@ -16,7 +17,7 @@ public:
 	using difference_type = std::ptrdiff_t;
 
 public:
-	fv_iterator(Ty* p = nullptr) : _ptr(p) {}
+	fv_iterator(pointer p = nullptr) : _ptr(p) {}
 	~fv_iterator() = default;
 	fv_iterator(const fv_iterator&) = default;
 	fv_iterator& operator=(const fv_iterator&) = default;
@@ -73,7 +74,7 @@ public:
 	}
 
 private:
-	Ty* _ptr;
+	pointer _ptr;
 };
 
 
@@ -96,7 +97,7 @@ public:
 public:
 	/*Constructor*/
 	fixed_vector() = default;
-	fixed_vector(::initializer_list<Ty>&& initializer);
+	fixed_vector(std::initializer_list<Ty>&& initializer);
 	fixed_vector(size_t size, Ty defaultItem = Ty());
 
 	template<size_t OTHER_SIZE>
@@ -106,11 +107,14 @@ public:
 	fixed_vector(fixed_vector<Ty, OTHER_SIZE>&& other) noexcept;
 
 	/*Destructor*/
-	~fixed_vector() = default;
+	~fixed_vector() {} ;
 
 	/*Copy & Move*/
 	template<size_t OTHER_SIZE>
 	fixed_vector& operator=(const fixed_vector<Ty, OTHER_SIZE>& other);
+
+	fixed_vector& operator=(const std::initializer_list<Ty>& initializer);
+
 
 	template<size_t OTHER_SIZE>
 	fixed_vector& operator=(fixed_vector<Ty, OTHER_SIZE>&& other);
@@ -126,8 +130,8 @@ public:
 	bool empty() const { return _size == 0; }
 
 public:
-	void push_back(Ty item);
-	void pop_back() { assert(_size != 0); ::destroy_at(&_alloc[_size - 1]);  --_size; }
+	void push_back(const Ty& item);
+	void pop_back() { assert(_size != 0); --_size; }
 
 	Ty back() const { assert(_size != 0);  return _alloc[_size - 1]; }
 	Ty front() const { assert(_size != 0); return _alloc[0]; }
@@ -143,15 +147,13 @@ public:
 		}
 		else if (nSize < _size)
 		{
-			::destroy(_alloc + nSize, _alloc + _size);
 			_size = nSize;
 		}
 	}
 
 	void swap(fixed_vector& other) { ::swap(_alloc, other._alloc); ::swap(_size, other._size); }
-
+	
 	void clear() {
-		::destroy(_alloc, _alloc + _size);
 		_size = 0;
 	}
 
@@ -188,8 +190,6 @@ public:
 		for (size_t i = index; i < _size - eraseCount; ++i)
 			_alloc[i] = _alloc[i + eraseCount];
 
-		::destroy(_alloc + _size - eraseCount, _alloc + _size);
-
 		_size -= eraseCount;
 
 		return begin() + index;
@@ -208,7 +208,12 @@ public:
 
 		clear();
 
-		::memcpy(_alloc, initializer.begin(), sizeof(Ty) * _size);
+		size_t i = 0;
+		for (const Ty& item : initializer)
+		{
+			_alloc[i] = item;
+			++i;
+		}
 	}
 	template <typename Iter>
 	void assign(Iter first, Iter last)
@@ -255,12 +260,17 @@ inline bool cmpRef(const void* left, const void* right)
 
 
 template<typename Ty, size_t FIXED_SIZE>
-inline fixed_vector<Ty, FIXED_SIZE>::fixed_vector(::initializer_list<Ty>&& initializer)
+inline fixed_vector<Ty, FIXED_SIZE>::fixed_vector(std::initializer_list<Ty>&& initializer)
 	: _size(initializer.size())
 {
 	assert(FIXED_SIZE >= initializer.size());
 
-	::memcpy(_alloc, initializer.begin(), sizeof(Ty) * _size);
+	size_t i = 0;
+	for (const Ty& item : initializer)
+	{
+		_alloc[i] = item;
+		++i;
+	}
 }
 
 template<typename Ty, size_t FIXED_SIZE>
@@ -271,6 +281,24 @@ inline fixed_vector<Ty, FIXED_SIZE>::fixed_vector(size_t size, Ty defaultItem)
 
 	for (size_t i = 0; i < _size; i++)
 		_alloc[i] = defaultItem;
+}
+
+template<typename Ty, size_t FIXED_SIZE>
+inline fixed_vector<Ty, FIXED_SIZE>& fixed_vector<Ty, FIXED_SIZE>::operator=(const std::initializer_list<Ty>& initializer)
+{
+	assert(FIXED_SIZE >= initializer.size());
+
+	clear();
+	_size = initializer.size();
+
+	size_t i = 0;
+	for (const Ty& item : initializer)
+	{
+		_alloc[i] = item;
+		++i;
+	}
+
+	return *this;
 }
 
 template<typename Ty, size_t FIXED_SIZE>
@@ -336,7 +364,7 @@ inline fixed_vector<Ty, FIXED_SIZE>::fixed_vector(fixed_vector<Ty, OTHER_SIZE>&&
 }
 
 template<typename Ty, size_t FIXED_SIZE>
-inline void fixed_vector<Ty, FIXED_SIZE>::push_back(Ty item)
+inline void fixed_vector<Ty, FIXED_SIZE>::push_back(const Ty& item)
 {
 	assert(_size < _capacity);
 	_alloc[_size] = item;
